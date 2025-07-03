@@ -1,0 +1,157 @@
+<div class="blog-container">
+  <button (click)="openModal()" class="btn btn-primary" *ngIf="isAdmin">
+    New Post
+  </button>
+
+  <div *ngIf="loginRequiredMessage" class="alert alert-warning">
+    {{ loginRequiredMessage }}
+  </div>
+  <div
+    *ngFor="let post of blogPosts; let i = index"
+    class="post-card"
+    #postCard
+    [class.highlighted-post]="post.isHighlighted"
+  >
+    <div class="d-flex">
+      <img
+        *ngIf="post.logoId"
+        [src]="getImageUrl(post.logoId)"
+        alt="Blog Image"
+        class="post-logo"
+      />
+      <h2>{{ post.title }}</h2>
+    </div>
+    <p class="meta">
+      By <strong>{{ post.author }}</strong> | {{ post.date }}
+    </p>
+    <p>
+      {{
+        post.showFullSummary
+          ? post.summary
+          : (post.summary | slice : 0 : 200) +
+            (post.summary.length > 200 || post.ImageId ? "..." : "")
+      }}
+      <a
+        *ngIf="post.summary.length > 200 || post.ImageId"
+        (click)="post.showFullSummary = !post.showFullSummary"
+        class="read-more-toggle"
+        style="cursor: pointer; color: #007bff; text-decoration: underline"
+      >
+        {{ post.showFullSummary ? "Show Less" : "Read More" }}
+      </a>
+    </p>
+
+    <div *ngIf="post.ImageId && post.showFullSummary">
+      <img
+        [src]="getImageUrl(post.ImageId)"
+        alt="Secondary Image"
+        width="300px"
+        height="200px"
+      />
+    </div>
+
+    <div class="post-actions">
+      <button style="cursor: pointer" (click)="likePost(post.id)">
+        <span [ngClass]="{ liked: post.isLiked, 'not-liked': !post.isLiked }">
+          <i
+            class="bi btnn"
+            [ngClass]="
+              post.isLiked ? 'bi-heart-fill liked' : 'bi-heart not-liked'
+            "
+          ></i>
+          {{ post.likes }}
+        </span>
+      </button>
+
+      <button (click)="toggleComments(i)" class="btn btn-link">
+        💬 {{ post.comments || 0 }} Comments
+      </button>
+
+      <button
+        *ngIf="isAdmin"
+        (click)="openEditModal(post)"
+        class="btn btn-sm btn-warning"
+      >
+        ✏️ Edit
+      </button>
+      <button
+        *ngIf="isAdmin"
+        (click)="deletePost(i)"
+        class="btn btn-sm btn-danger"
+      >
+        🗑️ Delete
+      </button>
+    </div>
+
+    <div *ngIf="post.showComments" class="comments-section">
+      <div *ngIf="post.commentList?.length === 0" class="no-comments">
+        No comments yet.
+      </div>
+
+      <div *ngFor="let comment of post.commentList" class="comment">
+        <strong>{{ comment.username }}:</strong> {{ comment.message }}
+        <button
+          *ngIf="isAdmin || comment.username === getCurrentUsername()"
+          (click)="deleteComment(post.id, comment.id)"
+          class="btn btn-sm btn-link"
+        >
+          🗑️
+        </button>
+      </div>
+
+      <div class="add-comment">
+        <input
+          type="text"
+          [(ngModel)]="newComment"
+          placeholder="Write a comment..."
+          (keydown.enter)="addComment(i, newComment)"
+        />
+        <button
+          (click)="addComment(i, newComment)"
+          class="btn btn-sm btn-primary"
+        >
+          Post
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal code unchanged -->
+  <div class="modal" [class.show]="showModal">
+    <div class="modal-content">
+      <h3>{{ editingPostId !== null ? "Edit Post" : "New Post" }}</h3>
+
+      <label>Title</label>
+      <input type="text" [(ngModel)]="newPost.title" />
+
+      <label>Summary</label>
+      <textarea rows="4" [(ngModel)]="newPost.summary"></textarea>
+
+      <label for="image">Image</label>
+      <input
+        type="file"
+        (change)="onImageSelected($event, 'post')"
+        accept="image/*"
+      />
+
+      <label>Author</label>
+      <input type="text" [(ngModel)]="newPost.author" disabled />
+
+      <div class="modal-actions">
+        <button
+          (click)="editingPostId !== null ? updatePost() : savePost()"
+          class="btn btn-success"
+          [disabled]="!newPost.title || !newPost.summary"
+        >
+          Save
+        </button>
+        <button
+          (click)="showModal = false; resetForm()"
+          class="btn btn-secondary"
+        >
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
