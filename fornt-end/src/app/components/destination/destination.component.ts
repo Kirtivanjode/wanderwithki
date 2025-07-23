@@ -60,24 +60,32 @@ export class DestinationComponent implements OnInit, OnDestroy {
 
   loadBucketList(focusId?: number) {
     this.isLoading = true;
-    this.blogService.getBucketList(this.userId).subscribe(
+    this.blogService.getBucketList().subscribe(
       (items) => {
         this.bucketList = items.map((item: any) => ({
-          id: item.Id ?? item.id,
-          name: item.Name || item.name,
-          completed: !!(item.Completed ?? item.completed),
-          emoji: item.Emoji || '❓',
-          latitude: item.Latitude ?? 0,
-          longitude: item.Longitude ?? 0,
-          country: item.Country || 'Unknown',
-          funFact: item.FunFact || '',
-          uniqueThing: item.UniqueThing || '',
-          isWishlist: this.userId ? !!(item.IsWishlist ?? false) : false,
+          id: item.id ?? item.Id,
+          name: item.name ?? item.Name,
+          completed: !!(item.completed ?? item.Completed),
+          emoji: item.emoji ?? item.Emoji ?? '❓',
+          latitude: item.latitude ?? item.Latitude ?? 0,
+          longitude: item.longitude ?? item.Longitude ?? 0,
+          country: item.country ?? item.Country ?? 'Unknown',
+
+          // ✅ Normalize casing here
+          funFact: item.funfact ?? item.funFact ?? item.FunFact ?? '',
+          uniqueThing:
+            item.uniquething ?? item.uniqueThing ?? item.UniqueThing ?? '',
+
+          isWishlist: this.userId
+            ? !!(item.isWishlist ?? item.IsWishlist)
+            : false,
         }));
+
         this.chunkedList = this.chunkArray(this.bucketList, 10);
         this.isLoading = false;
         this.initMap(focusId);
       },
+
       (error) => {
         console.error('Failed to load bucket list', error);
         this.isLoading = false;
@@ -139,11 +147,15 @@ export class DestinationComponent implements OnInit, OnDestroy {
 
   toggleItem(item: BucketListItem) {
     if (!this.isAdmin || item.id === undefined) return;
+
+    const newStatus = item.completed;
     this.blogService.updateBucketListItem(item).subscribe({
-      next: () => this.loadBucketList(),
+      next: () => {
+        item.completed = newStatus;
+      },
       error: (err) => {
         console.error('Failed to update item', err);
-        item.completed = !item.completed;
+        item.completed = !newStatus;
       },
     });
   }
@@ -174,23 +186,19 @@ export class DestinationComponent implements OnInit, OnDestroy {
   }
 
   generatePopupContent(item: BucketListItem, isAdmin: boolean): string {
-    const isUser = !isAdmin;
+    const isLoggedIn = !!this.userId;
+    const isUser = isLoggedIn && !isAdmin;
     const showDetails = item.completed;
 
     const starHtml = isUser
       ? `<span class="wishlist-star" data-id="${item.id}" 
-        style="
-        position: absolute; 
-        right: -6px;
-       top: -12px;
-        font-size: 24px; 
-        cursor: pointer;">
-         ${item.isWishlist ? '⭐' : '☆'}
-       </span>`
+          style="position: absolute; right: -6px; top: -12px; font-size: 24px; cursor: pointer;">
+        ${item.isWishlist ? '⭐' : '☆'}
+      </span>`
       : '';
 
     return `
-    <div class="popup-content" style="position: relative;  width: 300px;">
+    <div class="popup-content" style="position: relative; width: 300px;">
       ${starHtml}
       <strong>${item.name}</strong>
       <div class="popup-country">${item.country}</div>

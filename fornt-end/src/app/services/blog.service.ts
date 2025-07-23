@@ -17,20 +17,11 @@ export class BlogService {
 
   constructor(private http: HttpClient) {}
 
-  login(credentials: { username: string; password: string }): Observable<any> {
-    // User login
-    return this.http.post(`${this.baseUrl}/auth`, {
+  login(data: { username: string; password: string }) {
+    return this.http.post<{ user: any; role: string }>(`${this.baseUrl}/auth`, {
+      ...data,
       action: 'login',
-      ...credentials,
     });
-  }
-
-  adminlogin(credentials: {
-    username: string;
-    password: string;
-  }): Observable<any> {
-    // Admin login
-    return this.http.post(`${this.baseUrl}/admin`, credentials);
   }
 
   signUp(data: {
@@ -38,18 +29,22 @@ export class BlogService {
     password: string;
     email: string;
     phone: string;
-  }): Observable<any> {
-    return this.http.post(`${this.baseUrl}/auth`, {
-      action: 'signup',
+  }) {
+    return this.http.post<{ user: any; role: string }>(`${this.baseUrl}/auth`, {
       ...data,
+      action: 'signup',
     });
   }
 
-  getImageUrl(id: number | null | undefined): string {
-    if (!id || id === 0) {
-      return '';
-    }
-    return `${this.baseUrl}/images/${id}`;
+  adminlogin(credentials: {
+    username: string;
+    password: string;
+  }): Observable<any> {
+    return this.http.post(`${this.baseUrl}/admin/login`, credentials);
+  }
+
+  getImageUrl(id: number | null): string {
+    return id ? `${this.baseUrl}/images/${id}` : '';
   }
 
   getAllPosts(username?: string): Observable<any[]> {
@@ -79,7 +74,6 @@ export class BlogService {
     });
   }
 
-  // --- Comments ---
   getComments(postId: number): Observable<any[]> {
     return this.http.get<any[]>(`${this.baseUrl}/comments/${postId}`);
   }
@@ -119,7 +113,7 @@ export class BlogService {
     return this.http.get<any>(`${this.baseUrl}/fooditems/${id}`);
   }
 
-  addFoodItem(item: any): Observable<any> {
+  addFoodItem(item: FormData): Observable<any> {
     return this.http.post(`${this.baseUrl}/fooditems`, item);
   }
 
@@ -132,10 +126,8 @@ export class BlogService {
   }
 
   // --- Bucket List ---
-  getBucketList(userId: number): Observable<BucketListItem[]> {
-    return this.http.get<BucketListItem[]>(
-      `${this.baseUrl}/bucketlist/${userId}`
-    );
+  getBucketList(): Observable<BucketListItem[]> {
+    return this.http.get<BucketListItem[]>(`${this.baseUrl}/bucketlist`);
   }
 
   updateWishlist(userId: number, bucketItemId: number, isWishlist: boolean) {
@@ -175,24 +167,22 @@ export class BlogService {
   }
 
   getUserWishlist(userId: number): Observable<BucketListItem[]> {
-    return this.http
-      .get<WishlistDto[]>(`${this.baseUrl}/wishlist/${userId}`)
-      .pipe(
-        map((items) =>
-          items.map((item) => ({
-            id: item.Id,
-            name: item.Name,
-            completed: false,
-            emoji: item.Emoji,
-            latitude: item.Latitude,
-            longitude: item.Longitude,
-            funFact: '',
-            uniqueThing: '',
-            country: item.Country,
-            isWishlist: true,
-          }))
-        )
-      );
+    return this.http.get<any[]>(`${this.baseUrl}/wishlist/${userId}`).pipe(
+      map((items) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.name,
+          completed: false, // or item.completed if exists in DB
+          emoji: item.emoji,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          funFact: item.funfact || '',
+          uniqueThing: item.uniquething || '',
+          country: item.country,
+          isWishlist: true,
+        }))
+      )
+    );
   }
 
   getAdventures(): Observable<Adventure[]> {

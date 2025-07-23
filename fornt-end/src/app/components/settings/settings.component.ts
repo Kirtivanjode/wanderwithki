@@ -156,7 +156,23 @@ export class SettingsComponent implements OnInit {
 
   loadUserData() {
     this.blogService.getUserWishlist(this.user.id).subscribe({
-      next: (res) => (this.wishlist = res),
+      next: (res) => {
+        console.log('Raw wishlist data:', res);
+        this.wishlist = res.map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          country: item.country,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          emoji: item.emoji,
+          uniqueThing: item.uniquething || '',
+          funFact: item.funfact || '',
+          isWishlist: item.iswishlist ?? true,
+          completed: item.completed ?? false,
+        }));
+
+        console.log('Mapped Wishlist:', this.wishlist);
+      },
       error: (err) => console.error('Wishlist fetch error', err),
     });
 
@@ -175,7 +191,7 @@ export class SettingsComponent implements OnInit {
           if (!groupedMap.has(postId)) {
             groupedMap.set(postId, {
               postId: postId,
-              postTitle: comment.postTitle,
+              postTitle: comment.posttitle,
               comments: [],
             });
           }

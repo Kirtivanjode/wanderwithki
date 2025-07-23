@@ -23,6 +23,11 @@ export class AuthService {
     this.userSubject.next(null);
   }
 
+  getUsername(): string | null {
+    const userStr = sessionStorage.getItem('user');
+    return userStr ? JSON.parse(userStr).username : null;
+  }
+
   isLoggedIn(): boolean {
     return !!sessionStorage.getItem('token');
   }

@@ -4,14 +4,7 @@ import { BlogService } from '../../services/blog.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
-export interface Adventure {
-  Name: string;
-  Id: number;
-  Description: string;
-  Location: string;
-  ImageId: number;
-}
+import { Adventure } from '../../models/post';
 
 @Component({
   selector: 'app-adventure',
@@ -52,19 +45,20 @@ export class AdventureComponent implements OnInit {
 
   fetchAdventures() {
     this.blogService.getAdventures().subscribe((data: Adventure[]) => {
+      console.log('Fetched Adventures:', data);
       this.adventures = data;
       this.resetForm();
     });
   }
 
   editAdventure(adventure: Adventure) {
-    this.editingId = adventure.Id;
+    this.editingId = adventure.id;
     this.addingNew = false;
-    this.form.description = adventure.Description;
-    this.form.location = adventure.Location;
-    // Removed imagePreview
+    this.form.description = adventure.description;
+    this.form.location = adventure.location;
+
     this.form.imageFile = null;
-    this.form.Name = adventure.Name || '';
+    this.form.Name = adventure.name || '';
   }
 
   deleteAdventure(id: number) {
@@ -137,6 +131,6 @@ export class AdventureComponent implements OnInit {
   }
 
   trackById(index: number, item: Adventure): number {
-    return item.Id;
+    return item.id;
   }
 }

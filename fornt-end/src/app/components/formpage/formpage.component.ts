@@ -41,12 +41,11 @@ export class FormpageComponent implements OnInit {
   login() {
     this.blogService.login(this.loginData).subscribe({
       next: (res) => {
-        const userWithRoleAndToken = {
+        const user = {
           ...res.user,
-          role: res.user.role || 'user',
-          token: res.token,
+          role: res.role || 'user',
         };
-        this.authService.setUser(userWithRoleAndToken);
+        this.authService.setUser(user);
         this.router.navigateByUrl(this.returnUrl);
       },
       error: (err) => this.toastr.error(err.error?.message || 'Login failed'),
@@ -56,12 +55,11 @@ export class FormpageComponent implements OnInit {
   signUp() {
     this.blogService.signUp(this.signUpData).subscribe({
       next: (res) => {
-        const userWithRoleAndToken = {
+        const user = {
           ...res.user,
-          role: res.user.role || 'user',
-          token: res.token,
+          role: res.role || 'user',
         };
-        this.authService.setUser(userWithRoleAndToken);
+        this.authService.setUser(user);
         this.router.navigateByUrl(this.returnUrl);
       },
       error: (err) => this.toastr.error(err.error?.message || 'Signup failed'),

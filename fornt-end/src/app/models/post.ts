@@ -1,19 +1,19 @@
-export interface BlogPost {
-  post_date: string | number | Date;
-  id: number;
-  title: string;
-  summary: string;
-  author: string;
-  date: string;
-  logoImageId: number;
-  postImages: { ImageId: number }[]; // From JSON array of { ImageId }
-  likes: number;
-  isLiked: boolean;
-  comments: number;
-  commentList?: { username: string; message: string }[];
-  showComments?: boolean;
-  showFullSummary?: boolean;
-}
+// export interface BlogPost {
+//   post_date: string | number | Date;
+//   id: number;
+//   title: string;
+//   summary: string;
+//   author: string;
+//   date: string;
+//   logoImageId: number;
+//   postImages: { ImageId: number }[]; // From JSON array of { ImageId }
+//   likes: number;
+//   isLiked: boolean;
+//   comments: number;
+//   commentList?: { username: string; message: string }[];
+//   showComments?: boolean;
+//   showFullSummary?: boolean;
+// }
 
 export interface updateFoodItem {
   id: number;
@@ -26,11 +26,11 @@ export interface updateFoodItem {
 }
 
 export interface Adventure {
-  Id: number;
-  Description: string;
-  Location: string;
-  ImageId: number;
-  Name: string;
+  name: string;
+  id: number;
+  description: string;
+  location: string;
+  imageid: number;
 }
 
 export interface CommentRequest {
@@ -84,13 +84,6 @@ export interface PostLikesResponse {
 export interface Comment {
   username: string;
   message: string;
-}
-
-export interface Adventure {
-  Id: number;
-  Description: string;
-  Location: string;
-  ImagePath: string;
 }
 
 export interface WishlistDto {

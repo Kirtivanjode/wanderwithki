@@ -29,11 +29,14 @@ export class HomeComponent implements OnInit {
     const user = JSON.parse(sessionStorage.getItem('user') || '{}');
     this.isAdmin =
       user?.role === 'admin' && this.router.url.startsWith('/admin');
+
     this.loadSections();
   }
 
-  buildImageUrl(imageid: number): string {
-    return this.homeService.getImageUrl(imageid) + `?v=${Date.now()}`;
+  buildImageUrl(imageId: number | null): string {
+    return imageId
+      ? this.homeService.getImageUrl(imageId) + `?v=${Date.now()}`
+      : '';
   }
 
   loadSections() {
@@ -41,19 +44,22 @@ export class HomeComponent implements OnInit {
     this.homeService.getSections().subscribe({
       next: (sections: any[]) => {
         const mappedSections = sections.map((sec) => {
+          const imageid = sec.imageid ?? null;
+
           const section: WebsiteSection = {
-            id: sec.Id,
-            type: sec.Type.toLowerCase(),
-            title: sec.Title,
-            description: sec.Description,
-            content1: sec.Content1,
-            content2: sec.Content2,
-            imageid: sec.ImageId || 0,
+            id: sec.id,
+            type: (sec.type || '').toLowerCase(),
+            title: sec.title || '',
+            description: sec.description || '',
+            content1: sec.content1 || '',
+            content2: sec.content2 || '',
+            imageid: imageid,
             isEditing: false,
             selectedFile: undefined,
             previewUrl: '',
-            cacheBustedUrl: this.buildImageUrl(sec.ImageId || 0),
+            cacheBustedUrl: this.buildImageUrl(imageid),
           };
+
           return section;
         });
 
@@ -70,6 +76,7 @@ export class HomeComponent implements OnInit {
               break;
           }
         }
+
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -113,7 +120,9 @@ export class HomeComponent implements OnInit {
           section.previewUrl = '';
           this.cdr.detectChanges();
         },
-        error: (err) => console.error('Save failed', err),
+        error: (err) => {
+          console.error('Save failed', err);
+        },
       });
   }
 

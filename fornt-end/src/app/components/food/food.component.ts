@@ -4,17 +4,7 @@ import { BlogService } from '../../services/blog.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-
-export interface Food {
-  Id: number;
-  Name: string;
-  Description: string;
-  Location: string;
-  Rating: number;
-  ImageId: number | null;
-  ImageName?: string;
-  ImagePath: string;
-}
+import { Food } from '../../models/post';
 
 @Component({
   selector: 'app-food',
@@ -72,8 +62,18 @@ export class FoodComponent implements OnInit {
   }
 
   fetchFoods(): void {
-    this.blogService.getAllFoodItems().subscribe((data: Food[]) => {
-      this.foodItems = data;
+    this.blogService.getAllFoodItems().subscribe((data: any[]) => {
+      console.log('Fetched Food:', data);
+      this.foodItems = data.map((item) => ({
+        Id: item.id,
+        Name: item.name,
+        Description: item.description,
+        Location: item.location,
+        Rating: item.rating,
+        ImageId: item.imageid, // Map backend field to frontend
+        ImageName: item.imagename,
+        ImagePath: item.imagepath,
+      }));
       this.resetForm();
     });
   }

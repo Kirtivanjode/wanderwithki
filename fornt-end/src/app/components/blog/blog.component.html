@@ -1,11 +1,15 @@
 <div class="blog-container">
+  <!-- Admin Only: Create New Post -->
   <button (click)="openModal()" class="btn btn-primary" *ngIf="isAdmin">
     New Post
   </button>
 
+  <!-- Login prompt -->
   <div *ngIf="loginRequiredMessage" class="alert alert-warning">
     {{ loginRequiredMessage }}
   </div>
+
+  <!-- All Blog Posts -->
   <div
     *ngFor="let post of blogPosts; let i = index"
     class="post-card"
@@ -14,47 +18,55 @@
   >
     <div class="d-flex">
       <img
-        *ngIf="post.logoId"
-        [src]="getImageUrl(post.logoId)"
-        alt="Blog Image"
+        *ngIf="post.logoid"
+        [src]="getImageUrl(post.logoid)"
+        alt="Logo"
         class="post-logo"
       />
+
       <h2>{{ post.title }}</h2>
     </div>
+
     <p class="meta">
       By <strong>{{ post.author }}</strong> | {{ post.date }}
     </p>
+
+    <!-- Summary with toggle -->
     <p>
       {{
         post.showFullSummary
           ? post.summary
           : (post.summary | slice : 0 : 200) +
-            (post.summary.length > 200 || post.ImageId ? "..." : "")
+            (post.summary.length > 200 ? "..." : "")
       }}
       <a
-        *ngIf="post.summary.length > 200 || post.ImageId"
+        *ngIf="post.summary.length > 200"
         (click)="post.showFullSummary = !post.showFullSummary"
         class="read-more-toggle"
-        style="cursor: pointer; color: #007bff; text-decoration: underline"
+        style="cursor: pointer; color: #007bff"
       >
         {{ post.showFullSummary ? "Show Less" : "Read More" }}
       </a>
     </p>
 
-    <div *ngIf="post.ImageId && post.showFullSummary">
+    <!-- Optional image under summary -->
+    <div *ngIf="post.showFullSummary && post.imageIds?.length">
       <img
-        [src]="getImageUrl(post.ImageId)"
-        alt="Secondary Image"
-        width="300px"
-        height="200px"
+        *ngFor="let id of post.imageIds"
+        [src]="getImageUrl(id)"
+        alt="Blog Image"
+        width="300"
+        height="200"
+        style="margin-right: 10px"
       />
     </div>
 
+    <!-- Actions -->
     <div class="post-actions">
-      <button style="cursor: pointer" (click)="likePost(post.id)">
+      <button (click)="likePost(post.id)">
         <span [ngClass]="{ liked: post.isLiked, 'not-liked': !post.isLiked }">
           <i
-            class="bi btnn"
+            class="bi"
             [ngClass]="
               post.isLiked ? 'bi-heart-fill liked' : 'bi-heart not-liked'
             "
@@ -74,6 +86,7 @@
       >
         ✏️ Edit
       </button>
+
       <button
         *ngIf="isAdmin"
         (click)="deletePost(i)"
@@ -83,6 +96,7 @@
       </button>
     </div>
 
+    <!-- Comments Section -->
     <div *ngIf="post.showComments" class="comments-section">
       <div *ngIf="post.commentList?.length === 0" class="no-comments">
         No comments yet.
@@ -99,16 +113,19 @@
         </button>
       </div>
 
+      <!-- Add comment -->
+      <!-- Add comment -->
       <div class="add-comment">
         <input
           type="text"
-          [(ngModel)]="newComment"
+          [(ngModel)]="newCommentMap[post.id]"
           placeholder="Write a comment..."
-          (keydown.enter)="addComment(i, newComment)"
+          (keydown.enter)="addComment(i, newCommentMap[post.id])"
         />
         <button
-          (click)="addComment(i, newComment)"
+          (click)="addComment(i, newCommentMap[post.id])"
           class="btn btn-sm btn-primary"
+          [disabled]="!(newCommentMap[post.id] || '').trim()"
         >
           Post
         </button>
@@ -116,7 +133,7 @@
     </div>
   </div>
 
-  <!-- Modal code unchanged -->
+  <!-- Modal for create/edit -->
   <div class="modal" [class.show]="showModal">
     <div class="modal-content">
       <h3>{{ editingPostId !== null ? "Edit Post" : "New Post" }}</h3>
@@ -127,7 +144,7 @@
       <label>Summary</label>
       <textarea rows="4" [(ngModel)]="newPost.summary"></textarea>
 
-      <label for="image">Image</label>
+      <label for="postImage">Post Image</label>
       <input
         type="file"
         (change)="onImageSelected($event, 'post')"

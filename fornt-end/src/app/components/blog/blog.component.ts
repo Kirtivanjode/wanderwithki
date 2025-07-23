@@ -11,6 +11,7 @@ import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
+import { AuthService } from '../../services/auth.service';
 
 interface BlogPost {
   isHighlighted: boolean;
@@ -20,8 +21,7 @@ interface BlogPost {
   author: string;
   post_date: string;
   likes: number;
-  logoId?: number;
-  ImageId?: number;
+  logoid?: number;
   commentCount?: number;
   comments?: number;
   commentList?: Comment[];
@@ -52,7 +52,8 @@ export class BlogComponent implements OnInit, AfterViewInit {
 
   showModal = false;
   loginRequiredMessage = '';
-  newComment = '';
+  newCommentMap: { [postId: number]: string } = {};
+
   isAdmin = false;
   editingPostId: number | null = null;
 
@@ -78,7 +79,8 @@ export class BlogComponent implements OnInit, AfterViewInit {
     private router: Router,
     private datePipe: DatePipe,
     private sanitizer: DomSanitizer,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private authservice: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -127,12 +129,18 @@ export class BlogComponent implements OnInit, AfterViewInit {
   }
 
   loadPosts(): void {
-    const username = this.getCurrentUsername() || undefined;
-    this.blogService.getAllPosts(username).subscribe({
-      next: (posts: BlogPost[]) => {
+    this.blogService.getAllPosts().subscribe({
+      next: (posts: any[]) => {
         this.blogPosts = posts.map((p) => {
           const isHighlighted =
             this.highlightPostId !== null && p.id === this.highlightPostId;
+
+          const imageIds = Array.isArray(p.postImages)
+            ? p.postImages.map((img: any) => img.ImageId)
+            : p.imageid
+            ? [p.imageid]
+            : [];
+
           return {
             ...p,
             isHighlighted,
@@ -142,44 +150,42 @@ export class BlogComponent implements OnInit, AfterViewInit {
                 new Date(p.post_date),
                 'MMM d, yyyy, h:mm a'
               ) || '',
-            comments: p.commentCount || 0,
-            commentList: [],
-            showComments: false,
+            commentList: p.commentlist || [],
+            comments: parseInt(p.commentcount || '0', 10),
+
+            showComments: false, // ← If you want comments shown always
             isLiked: !!p.isLiked,
             likes: p.likes || 0,
             likedBy: p.likedBy || [],
-            imageIds: (p as any).imageIds || (p.ImageId ? [p.ImageId] : []),
+            imageIds,
           };
         });
 
-        console.log('Highlight Post ID:', this.highlightPostId);
-        console.log('Blog Posts:', this.blogPosts);
+        console.log('Mapped Blog Posts:', this.blogPosts);
       },
       error: (err) => console.error('Error loading posts', err),
     });
   }
 
-  getFormattedSummary(post: BlogPost): SafeHtml {
-    const summary = post.summary || '';
-    const content =
-      post.showFullSummary || summary.length <= 200
-        ? summary
-        : summary.slice(0, 200) + '...';
-    return this.sanitizer.bypassSecurityTrustHtml(content);
+  getImageUrl(id: number | null): string {
+    return id ? `http://localhost:3000/api/images/${id}` : '';
   }
 
-  onImageSelected(event: Event, type: 'post' | 'logo'): void {
-    const input = event.target as HTMLInputElement;
-    if (input.files && input.files[0]) {
-      const file = input.files[0];
-      if (type === 'post') {
-        this.form.postImage = file;
-        this.form.postImageName = file.name;
-      } else {
-        this.form.logoImage = file;
-        this.form.logoImageName = file.name;
-      }
-    }
+  getCurrentUsername(): string | null {
+    const user = sessionStorage.getItem('user');
+    return user ? JSON.parse(user).username : null;
+  }
+
+  isLoggedIn(): boolean {
+    return !!sessionStorage.getItem('user');
+  }
+
+  promptLogin(): void {
+    this.loginRequiredMessage = 'Please log in to like or comment.';
+    setTimeout(() => (this.loginRequiredMessage = ''), 3000);
+    this.router.navigate(['/formpage'], {
+      queryParams: { returnUrl: this.router.url },
+    });
   }
 
   openModal(): void {
@@ -194,6 +200,7 @@ export class BlogComponent implements OnInit, AfterViewInit {
       summary: post.summary,
       author: post.author,
     };
+
     this.form.postImage = null;
     this.form.logoImage = null;
     this.form.postImageName = '';
@@ -204,8 +211,8 @@ export class BlogComponent implements OnInit, AfterViewInit {
   resetForm(): void {
     this.newPost = {
       title: '',
-      author: 'Wander With KI',
       summary: '',
+      author: 'Wander With KI',
     };
     this.form = {
       postImage: null,
@@ -224,9 +231,9 @@ export class BlogComponent implements OnInit, AfterViewInit {
     if (this.form.postImage) {
       formData.append('postImage', this.form.postImage);
     }
-    if (this.form.logoImage) {
-      formData.append('logoImage', this.form.logoImage);
-    }
+    // if (this.form.logoImage) {
+    //   formData.append('logoImage', this.form.logoImage);
+    // }
 
     this.blogService.createPost(formData).subscribe({
       next: () => {
@@ -279,12 +286,26 @@ export class BlogComponent implements OnInit, AfterViewInit {
     }
   }
 
+  onImageSelected(event: Event, type: 'post' | 'logo'): void {
+    const input = event.target as HTMLInputElement;
+    if (input.files && input.files[0]) {
+      const file = input.files[0];
+      if (type === 'post') {
+        this.form.postImage = file;
+        this.form.postImageName = file.name;
+      } else {
+        this.form.logoImage = file;
+        this.form.logoImageName = file.name;
+      }
+    }
+  }
+
   toggleComments(index: number): void {
     const post = this.blogPosts[index];
     post.showComments = !post.showComments;
     if (post.showComments && post.commentList?.length === 0) {
       this.blogService.getComments(post.id).subscribe({
-        next: (comments: Comment[]) => {
+        next: (comments) => {
           post.commentList = comments;
           post.comments = comments.length;
         },
@@ -315,12 +336,12 @@ export class BlogComponent implements OnInit, AfterViewInit {
         next: () => {
           post.commentList = post.commentList || [];
           post.commentList.unshift({
+            id: 0,
             username: user.username,
             message: trimmedMessage,
-            id: 0,
           });
           post.comments = post.commentList.length;
-          this.newComment = '';
+          this.newCommentMap[post.id] = ''; // Clear the input
         },
         error: (err) => console.error('Failed to add comment', err),
       });
@@ -328,6 +349,7 @@ export class BlogComponent implements OnInit, AfterViewInit {
 
   deleteComment(postId: number, commentId: number): void {
     if (!confirm('Are you sure you want to delete this comment?')) return;
+
     this.blogService.deleteComment(commentId).subscribe({
       next: () => {
         const post = this.blogPosts.find((p) => p.id === postId);
@@ -344,7 +366,8 @@ export class BlogComponent implements OnInit, AfterViewInit {
   }
 
   likePost(postId: number): void {
-    const username = this.getCurrentUsername();
+    const username = this.authservice.getUsername();
+
     if (!username) {
       this.promptLogin();
       return;
@@ -355,38 +378,13 @@ export class BlogComponent implements OnInit, AfterViewInit {
 
     this.blogService.likePost(postId, username).subscribe({
       next: (res) => {
-        post.likes = res.likes;
+        // ✅ Use actual values from backend response
         post.isLiked = res.isLiked;
-        this.blogService.getPostLikes(postId).subscribe({
-          next: (likes) => {
-            post.likedBy = likes.likedBy.map((user) => user.username);
-          },
-          error: (err) =>
-            console.error('Failed to load likedBy after like toggle', err),
-        });
+        post.likes = res.likes;
       },
-      error: (err) => console.error('Failed to toggle like', err),
+      error: (err) => {
+        console.error('Failed to toggle like', err);
+      },
     });
-  }
-
-  getCurrentUsername(): string | null {
-    const user = sessionStorage.getItem('user');
-    return user ? JSON.parse(user).username : null;
-  }
-
-  isLoggedIn(): boolean {
-    return !!sessionStorage.getItem('user');
-  }
-
-  promptLogin(): void {
-    this.loginRequiredMessage = 'Please log in to like or comment.';
-    setTimeout(() => (this.loginRequiredMessage = ''), 3000);
-    this.router.navigate(['/formpage'], {
-      queryParams: { returnUrl: this.router.url },
-    });
-  }
-
-  getImageUrl(imageId: number | null): string {
-    return imageId ? `http://localhost:3000/api/images/${imageId}` : '';
   }
 }

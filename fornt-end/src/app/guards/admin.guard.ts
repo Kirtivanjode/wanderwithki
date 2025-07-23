@@ -8,7 +8,11 @@ export class AdminGuard implements CanActivate {
 
   canActivate(): boolean {
     if (this.auth.isAdmin()) return true;
-    this.router.navigate(['/admin/formpage']);
+
+    this.router.navigate(['/admin/formpage'], {
+      queryParams: { returnUrl: this.router.url },
+    });
+
     return false;
   }
 }
